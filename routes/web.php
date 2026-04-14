@@ -29,4 +29,7 @@ Route::middleware(['auth', 'role:vendor'])->group(function () {
 
 Volt::route('/vendor/dashboard', 'vendor.dashboard')->name('vendor.dashboard');
 Volt::route('/profile', 'profile.index')->name('profile');
+Volt::route('/vendors/{vendor}', 'market.vendor')->name('market.vendor');
+Volt::route('/vendor/profile', 'vendor.profile')->name('vendor.profile');
+Volt::route('/orders/{order}/confirmation', 'buyer.orders.confirmation')->name('order.confirmation');
 require __DIR__.'/auth.php';

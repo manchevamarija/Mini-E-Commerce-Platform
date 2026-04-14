@@ -110,9 +110,10 @@ new class extends Component {
                     @endif
                 </div>
                 <div style="padding: 12px; flex: 1; display: flex; flex-direction: column;">
-                    <p style="font-size: 10px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 4px 0;">
+                    <a href="{{ route('market.vendor', $product->vendor) }}"
+                       style="font-size: 10px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 4px 0; text-decoration: none; display: block;">
                         {{ $product->vendor->shop_name }}
-                    </p>
+                    </a>
                     <h3 style="font-size: 13px; font-weight: 700; color: #111; margin: 0 0 4px 0; line-height: 1.4;">
                         {{ $product->name }}
                     </h3>
@@ -133,8 +134,9 @@ new class extends Component {
                                 Details
                             </a>
                             <button wire:click="addToCart('{{ $product->id }}')"
-                                    style="flex: 1; background: #111; color: white; border: none; border-radius: 8px; padding: 7px 0; font-size: 12px; font-weight: 600; cursor: pointer;">
-                                Add to Cart
+                                    @if($product->stock === 0) disabled @endif
+                                    style="flex: 1; background: {{ $product->stock === 0 ? '#ccc' : '#111' }}; color: white; border: none; border-radius: 8px; padding: 7px 0; font-size: 12px; font-weight: 600; cursor: {{ $product->stock === 0 ? 'not-allowed' : 'pointer' }};">
+                                {{ $product->stock === 0 ? 'Out of Stock' : 'Add to Cart' }}
                             </button>
                         </div>
                     </div>

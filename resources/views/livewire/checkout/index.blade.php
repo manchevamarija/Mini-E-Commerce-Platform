@@ -24,7 +24,7 @@ new class extends Component {
                 PaymentMethod::from($this->paymentMethod)
             );
 
-            $this->redirect(route('buyer.orders.show', $order));
+            $this->redirect(route('order.confirmation', $order));
         } catch (\RuntimeException $e) {
             $this->error = $e->getMessage();
         }

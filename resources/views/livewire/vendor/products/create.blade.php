@@ -70,10 +70,16 @@ new class extends Component {
 
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Image URL (optional)</label>
-            <input wire:model="imageUrl" type="url" class="w-full border rounded-lg px-4 py-2" />
+            <input wire:model.live="imageUrl" type="url" class="w-full border rounded-lg px-4 py-2" />
             @error('imageUrl') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            @if($imageUrl)
+                <div style="margin-top: 12px;">
+                    <p style="font-size: 12px; color: #999; margin-bottom: 6px;">Preview:</p>
+                    <img src="{{ $imageUrl }}" alt="Preview"
+                         style="width: 200px; height: 150px; object-fit: cover; border-radius: 10px; border: 1px solid #eee;" />
+                </div>
+            @endif
         </div>
-
         <button wire:click="save"
                 class="w-full bg-blue-600 text-white rounded-lg py-3 font-semibold hover:bg-blue-700">
             Create Product

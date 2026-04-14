@@ -42,13 +42,25 @@
                        style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
                         Vendor Orders
                     </a>
+                    <a href="{{ route('vendor.profile') }}"
+                       style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
+                        Shop Profile
+                    </a>
                 @endif
 
                 @if(auth()->user()->isBuyer())
-                    <a href="{{ route('cart.index') }}"
-                       style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
-                        Cart
-                    </a>
+                        <a href="{{ route('cart.index') }}"
+                           style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                            Cart
+                            @php
+                                $cartCount = auth()->user()->cart?->items()->count() ?? 0;
+                            @endphp
+                            @if($cartCount > 0)
+                                <span style="background: #6366f1; color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;">
+            {{ $cartCount }}
+        </span>
+                            @endif
+                        </a>
                     <a href="{{ route('buyer.orders.index') }}"
                        style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
                         My Orders
