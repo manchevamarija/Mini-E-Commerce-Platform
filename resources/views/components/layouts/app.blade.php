@@ -30,13 +30,17 @@
 
             @auth
                 @if(auth()->user()->isVendor())
+                    <a href="{{ route('vendor.dashboard') }}"
+                       style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
+                        Dashboard
+                    </a>
                     <a href="{{ route('vendor.products.index') }}"
                        style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
                         My Products
                     </a>
                     <a href="{{ route('vendor.orders.index') }}"
                        style="font-size: 13px; font-weight: 500; color: #555; text-decoration: none;">
-                        Orders
+                        Vendor Orders
                     </a>
                 @endif
 
@@ -51,7 +55,10 @@
                     </a>
                 @endif
 
-                <span style="font-size: 13px; color: #aaa;">{{ auth()->user()->name }}</span>
+                <a href="{{ route('profile') }}"
+                   style="font-size: 13px; color: #aaa; text-decoration: none;">
+                    {{ auth()->user()->name }}
+                </a>
 
                 <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
                     @csrf

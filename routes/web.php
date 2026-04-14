@@ -3,10 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::get('/', function () {
-    return view('welcome');
-});
 
+Route::get('/', function () {
+    return redirect()->route('market.index');
+});
 // Marketplace - public
 Volt::route('/market', 'market.index')->name('market.index');
 Volt::route('/market/{product}', 'market.show')->name('market.show');
@@ -27,4 +27,6 @@ Route::middleware(['auth', 'role:vendor'])->group(function () {
     Volt::route('/vendor/orders', 'vendor.orders.index')->name('vendor.orders.index');
 });
 
+Volt::route('/vendor/dashboard', 'vendor.dashboard')->name('vendor.dashboard');
+Volt::route('/profile', 'profile.index')->name('profile');
 require __DIR__.'/auth.php';

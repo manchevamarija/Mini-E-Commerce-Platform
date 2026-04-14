@@ -17,31 +17,35 @@ new #[Layout('layouts.guest')] class extends Component
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
-    public string $role = 'buyer';
+    public bool $is_buyer = true;
+    public bool $is_vendor = false;
     public string $shop_name = '';
 
     public function register(): void
     {
-        $validated = $this->validate([
+        $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:buyer,vendor'],
-            'shop_name' => [$this->role === 'vendor' ? 'required' : 'nullable', 'string', 'max:255'],
+            'shop_name' => [$this->is_vendor ? 'required' : 'nullable', 'string', 'max:255'],
         ]);
+
+        $role = $this->is_vendor ? UserRole::Vendor : UserRole::Buyer;
 
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => UserRole::from($validated['role']),
+            'name' => $this->name,
+            'email' => $this->email,
+            'password' => Hash::make($this->password),
+            'role' => $role,
+            'is_buyer' => $this->is_buyer,
+            'is_vendor' => $this->is_vendor,
         ]);
 
-        if ($validated['role'] === 'vendor') {
+        if ($this->is_vendor) {
             Vendor::create([
                 'id' => Str::ulid(),
                 'user_id' => $user->id,
-                'shop_name' => $validated['shop_name'],
+                'shop_name' => $this->shop_name,
                 'description' => '',
             ]);
         }
@@ -49,7 +53,7 @@ new #[Layout('layouts.guest')] class extends Component
         event(new Registered($user));
         Auth::login($user);
 
-        if ($user->isVendor()) {
+        if ($user->isVendor() && !$user->isBuyer()) {
             $this->redirect(route('vendor.products.index'), navigate: true);
         } else {
             $this->redirect(route('market.index'), navigate: true);
@@ -83,24 +87,22 @@ new #[Layout('layouts.guest')] class extends Component
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        {{-- Role --}}
+        {{-- Roles --}}
         <div class="mt-4">
-            <x-input-label :value="__('I want to')" />
+            <x-input-label :value="__('I want to (select one or both)')" />
             <div class="flex gap-4 mt-2">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" wire:model.live="role" value="buyer" class="text-indigo-600" />
+                    <input type="checkbox" wire:model.live="is_buyer" class="text-indigo-600" />
                     <span class="text-sm text-gray-700">Shop as Buyer</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" wire:model.live="role" value="vendor" class="text-indigo-600" />
+                    <input type="checkbox" wire:model.live="is_vendor" class="text-indigo-600" />
                     <span class="text-sm text-gray-700">Sell as Vendor</span>
                 </label>
             </div>
-            <x-input-error :messages="$errors->get('role')" class="mt-2" />
         </div>
 
-        {{-- Shop name (only for vendor) --}}
-        @if($role === 'vendor')
+        @if($is_vendor)
             <div class="mt-4">
                 <x-input-label for="shop_name" :value="__('Shop Name')" />
                 <x-text-input wire:model="shop_name" id="shop_name" class="block mt-1 w-full" type="text" />

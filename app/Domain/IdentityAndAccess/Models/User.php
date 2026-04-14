@@ -21,6 +21,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_buyer',
+        'is_vendor',
     ];
 
     protected $hidden = [
@@ -34,6 +36,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'is_buyer' => 'boolean',
+            'is_vendor' => 'boolean',
         ];
     }
 
@@ -54,12 +58,12 @@ class User extends Authenticatable
 
     public function isVendor(): bool
     {
-        return $this->role === UserRole::Vendor;
+        return $this->is_vendor || $this->role === UserRole::Vendor;
     }
 
     public function isBuyer(): bool
     {
-        return $this->role === UserRole::Buyer;
+        return $this->is_buyer || $this->role === UserRole::Buyer;
     }
 
     public function isAdmin(): bool

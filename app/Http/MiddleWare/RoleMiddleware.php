@@ -14,7 +14,16 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        if ($request->user()->role->value !== $role) {
+        $user = $request->user();
+
+        $hasRole = match($role) {
+            'buyer' => $user->isBuyer(),
+            'vendor' => $user->isVendor(),
+            'admin' => $user->isAdmin(),
+            default => false,
+        };
+
+        if (!$hasRole) {
             abort(403, 'Unauthorized.');
         }
 
