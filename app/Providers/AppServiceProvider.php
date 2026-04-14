@@ -3,22 +3,23 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        Gate::define('vendor-only', function ($user) {
+            return $user->isVendor();
+        });
+
+        Gate::define('buyer-only', function ($user) {
+            return $user->isBuyer();
+        });
     }
 }
