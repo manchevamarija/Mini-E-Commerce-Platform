@@ -57,7 +57,7 @@ class ProductSeeder extends Seeder
                     'description' => fake()->paragraph(2),
                     'price' => $item['price'],
                     'stock' => $item['stock'],
-                    'image_url' => 'https://picsum.photos/seed/' . urlencode($item['name']) . '/400/400',
+                    'image_url' => 'https://picsum.photos/300/300?random=' . rand(1, 1000),
                     'status' => ProductStatus::Active,
                 ]);
             }

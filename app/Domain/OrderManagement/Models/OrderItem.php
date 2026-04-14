@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Domain\OrderManagement\Models;
+use Illuminate\Support\Str;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +25,15 @@ class OrderItem extends Model
         'quantity',
         'price',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+        });
+    }
 
     protected function casts(): array
     {

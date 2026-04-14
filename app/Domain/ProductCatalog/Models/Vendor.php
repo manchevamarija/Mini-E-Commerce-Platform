@@ -2,16 +2,13 @@
 
 namespace App\Domain\ProductCatalog\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Vendor extends Model
 {
     use HasFactory;
-    protected static function newFactory(): \Database\Factories\VendorFactory
-    {
-        return \Database\Factories\VendorFactory::new();
-    }
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -22,6 +19,20 @@ class Vendor extends Model
         'description',
         'logo_url',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($vendor) {
+            if (empty($vendor->id)) {
+                $vendor->id = (string) Str::ulid();
+            }
+        });
+    }
+
+    protected static function newFactory(): \Database\Factories\VendorFactory
+    {
+        return \Database\Factories\VendorFactory::new();
+    }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

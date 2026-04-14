@@ -4,6 +4,7 @@ namespace App\Domain\Cart\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class Cart extends Model
 {
@@ -20,6 +21,16 @@ class Cart extends Model
     protected $fillable = [
         'user_id',
     ];
+
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+        });
+    }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

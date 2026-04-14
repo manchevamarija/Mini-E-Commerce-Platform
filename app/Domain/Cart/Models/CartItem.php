@@ -4,6 +4,7 @@ namespace App\Domain\Cart\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class CartItem extends Model
 {
@@ -23,6 +24,16 @@ class CartItem extends Model
         'product_id',
         'quantity',
     ];
+
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+        });
+    }
 
     public function cart(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Domain\OrderManagement\Models;
+use Illuminate\Support\Str;
 
 use App\Domain\OrderManagement\Enums\OrderStatus;
 use App\Domain\OrderManagement\Enums\PaymentMethod;
@@ -34,6 +35,15 @@ class Order extends Model
             'payment_method' => PaymentMethod::class,
             'total' => 'decimal:2',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::ulid();
+            }
+        });
     }
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo

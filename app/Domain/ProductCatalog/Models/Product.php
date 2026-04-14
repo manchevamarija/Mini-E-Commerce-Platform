@@ -6,6 +6,7 @@ use App\Domain\ProductCatalog\Enums\ProductStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -46,6 +47,16 @@ class Product extends Model
     {
         return $query->where('status', ProductStatus::Active);
     }
+
+    protected static function booted(): void
+    {
+        static::creating(function ($product) {
+            if (empty($product->id)) {
+                $product->id = (string) Str::ulid();
+            }
+        });
+    }
+
 
     public function scopeForVendor($query, Vendor $vendor): \Illuminate\Database\Eloquent\Builder
     {

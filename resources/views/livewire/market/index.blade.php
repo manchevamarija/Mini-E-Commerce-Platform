@@ -2,7 +2,8 @@
 
 use App\Domain\ProductCatalog\Models\Product;
 use App\Domain\ProductCatalog\Models\Vendor;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Domain\Cart\Actions\AddToCartAction;
+use App\Domain\Cart\Models\Cart;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 
@@ -19,6 +20,29 @@ new class extends Component {
     public function updatedMinPrice(): void { $this->resetPage(); }
     public function updatedMaxPrice(): void { $this->resetPage(); }
 
+    public function addToCart(string $productId): void
+    {
+        if (!auth()->check()) {
+            $this->redirect(route('login'));
+            return;
+        }
+
+        $product = Product::findOrFail($productId);
+        $user = auth()->user();
+
+        $cart = $user->cart ?? Cart::create([
+            'id' => \Illuminate\Support\Str::ulid(),
+            'user_id' => $user->id,
+        ]);
+
+        try {
+            app(AddToCartAction::class)->execute($cart, $product, 1);
+            session()->flash('added_' . $productId, true);
+        } catch (\RuntimeException $e) {
+            session()->flash('error_' . $productId, $e->getMessage());
+        }
+    }
+
     public function with(): array
     {
         $products = Product::active()
@@ -27,7 +51,7 @@ new class extends Component {
             ->when($this->vendorId, fn($q) => $q->where('vendor_id', $this->vendorId))
             ->when($this->minPrice, fn($q) => $q->where('price', '>=', $this->minPrice))
             ->when($this->maxPrice, fn($q) => $q->where('price', '<=', $this->maxPrice))
-            ->paginate(12);
+            ->paginate(20);
 
         return [
             'products' => $products,
@@ -36,49 +60,84 @@ new class extends Component {
     }
 }; ?>
 
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-6">Marketplace</h1>
+<div style="font-family: 'Inter', sans-serif;">
 
-    {{-- Filters --}}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <input wire:model.live="search" type="text" placeholder="Search products..."
-               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-
-        <select wire:model.live="vendorId" class="border rounded-lg px-4 py-2">
-            <option value="">All Vendors</option>
-            @foreach($vendors as $vendor)
-                <option value="{{ $vendor->id }}">{{ $vendor->shop_name }}</option>
-            @endforeach
-        </select>
-
-        <input wire:model.live="minPrice" type="number" placeholder="Min price"
-               class="border rounded-lg px-4 py-2" />
-
-        <input wire:model.live="maxPrice" type="number" placeholder="Max price"
-               class="border rounded-lg px-4 py-2" />
+    {{-- Header --}}
+    <div style="background: #111; border-radius: 16px; padding: 32px 40px; margin-bottom: 24px; color: white;">
+        <h1 style="font-size: 28px; font-weight: 800; margin: 0 0 4px 0; letter-spacing: -0.5px;">Marketplace</h1>
+        <p style="font-size: 14px; color: #888; margin: 0;">Browse products from all vendors</p>
     </div>
 
-    {{-- Products Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    {{-- Filters --}}
+    <div style="background: white; border-radius: 14px; border: 1px solid #eee; padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <input wire:model.live="search" type="text" placeholder="Search products..."
+                   style="flex: 1; min-width: 160px; border: 1px solid #e5e5e5; border-radius: 10px; padding: 9px 14px; font-size: 13px; outline: none;" />
+            <select wire:model.live="vendorId"
+                    style="border: 1px solid #e5e5e5; border-radius: 10px; padding: 9px 14px; font-size: 13px; outline: none;">
+                <option value="">All Vendors</option>
+                @foreach($vendors as $vendor)
+                    <option value="{{ $vendor->id }}">{{ $vendor->shop_name }}</option>
+                @endforeach
+            </select>
+            <input wire:model.live="minPrice" type="number" placeholder="Min $"
+                   style="width: 90px; border: 1px solid #e5e5e5; border-radius: 10px; padding: 9px 12px; font-size: 13px; outline: none;" />
+            <input wire:model.live="maxPrice" type="number" placeholder="Max $"
+                   style="width: 90px; border: 1px solid #e5e5e5; border-radius: 10px; padding: 9px 12px; font-size: 13px; outline: none;" />
+        </div>
+    </div>
+
+    {{-- Grid: 4 per row --}}
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
         @forelse($products as $product)
-            <div class="bg-white rounded-xl shadow hover:shadow-md transition p-4">
-                <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
-                     class="w-full h-48 object-cover rounded-lg mb-3" />
-                <h3 class="font-semibold text-lg">{{ $product->name }}</h3>
-                <p class="text-sm text-gray-500 mb-1">{{ $product->vendor->shop_name }}</p>
-                <p class="text-blue-600 font-bold text-lg">${{ number_format($product->price, 2) }}</p>
-                <p class="text-sm text-gray-400">Stock: {{ $product->stock }}</p>
-                <a href="{{ route('market.show', $product) }}"
-                   class="mt-3 block text-center bg-blue-600 text-white rounded-lg py-2 hover:bg-blue-700">
-                    View Product
+            <div style="background: white; border-radius: 14px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s;">
+                <a href="{{ route('market.show', $product) }}">
+                    <img
+                        src="https://picsum.photos/seed/{{ $product->id }}/400/220"
+                        alt="{{ $product->name }}"
+                        style="width: 100%; height: 150px; object-fit: cover; display: block;"
+                    />
                 </a>
+                <div style="padding: 12px; flex: 1; display: flex; flex-direction: column;">
+                    <p style="font-size: 10px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 4px 0;">
+                        {{ $product->vendor->shop_name }}
+                    </p>
+                    <h3 style="font-size: 13px; font-weight: 700; color: #111; margin: 0 0 4px 0; line-height: 1.4;">
+                        {{ $product->name }}
+                    </h3>
+                    <p style="font-size: 11px; color: #aaa; margin: 0 0 10px 0;">{{ $product->stock }} in stock</p>
+
+                    <div style="margin-top: auto;">
+                        <p style="font-size: 16px; font-weight: 800; color: #111; margin: 0 0 10px 0;">
+                            ${{ number_format($product->price, 2) }}
+                        </p>
+
+                        @if(session('added_' . $product->id))
+                            <p style="font-size: 11px; color: #16a34a; text-align: center; margin-bottom: 6px;">Added to cart!</p>
+                        @endif
+
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{{ route('market.show', $product) }}"
+                               style="flex: 1; text-align: center; border: 1.5px solid #6366f1; color: #6366f1; border-radius: 8px; padding: 7px 0; font-size: 12px; font-weight: 600; text-decoration: none;">
+                                Details
+                            </a>
+                            <button wire:click="addToCart('{{ $product->id }}')"
+                                    style="flex: 1; background: #111; color: white; border: none; border-radius: 8px; padding: 7px 0; font-size: 12px; font-weight: 600; cursor: pointer;">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         @empty
-            <p class="col-span-4 text-center text-gray-500">No products found.</p>
+            <div style="grid-column: span 4; text-align: center; padding: 80px 0; color: #aaa;">
+                <p style="font-size: 16px;">No products found.</p>
+            </div>
         @endforelse
     </div>
 
-    <div class="mt-8">
+    {{-- Pagination --}}
+    <div style="margin-top: 32px;">
         {{ $products->links() }}
     </div>
 </div>
