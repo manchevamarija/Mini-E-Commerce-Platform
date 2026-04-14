@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
+use App\Domain\IdentityAndAccess\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
@@ -32,7 +32,7 @@ class AuthenticationTest extends TestCase
 
         $component
             ->assertHasNoErrors()
-            ->assertRedirect(route('dashboard', absolute: false));
+            ->assertRedirect(route('market.index'));
 
         $this->assertAuthenticated();
     }
@@ -60,11 +60,9 @@ class AuthenticationTest extends TestCase
 
         $this->actingAs($user);
 
-        $response = $this->get('/dashboard');
+        $response = $this->get('/market');
 
-        $response
-            ->assertOk()
-            ->assertSeeVolt('layout.navigation');
+        $response->assertOk();
     }
 
     public function test_users_can_logout(): void
@@ -73,13 +71,9 @@ class AuthenticationTest extends TestCase
 
         $this->actingAs($user);
 
-        $component = Volt::test('layout.navigation');
+        $response = $this->post('/logout');
 
-        $component->call('logout');
-
-        $component
-            ->assertHasNoErrors()
-            ->assertRedirect('/');
+        $response->assertRedirect(route('market.index'));
 
         $this->assertGuest();
     }
