@@ -64,9 +64,13 @@ new class extends Component {
                 @foreach($shopItems as $item)
                     <div class="flex items-center justify-between py-3 border-b last:border-0">
                         <div class="flex items-center gap-4">
-                            <img src="{{ $item->product->image_url }}" class="w-16 h-16 object-cover rounded" />
-                            <div>
-                                <p class="font-medium">{{ $item->product->name }}</p>
+                            <a href="{{ route('market.show', $item->product) }}">
+                                <img src="{{ $item->product->image_url }}" class="w-16 h-16 object-cover rounded hover:opacity-80 transition" />
+                            </a>                            <div>
+                                <a href="{{ route('market.show', $item->product) }}"
+                                   class="font-medium hover:text-indigo-600 transition">
+                                    {{ $item->product->name }}
+                                </a>
                                 <p class="text-sm text-gray-500">${{ number_format($item->product->price, 2) }}</p>
                             </div>
                         </div>
