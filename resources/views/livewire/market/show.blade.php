@@ -24,6 +24,7 @@ new class extends Component {
         }
 
         $user = auth()->user();
+
         $cart = $user->cart ?? Cart::create([
             'id' => \Illuminate\Support\Str::ulid(),
             'user_id' => $user->id,
@@ -41,19 +42,30 @@ new class extends Component {
 
     public function with(): array
     {
-        // Related products: same vendor, excluding current, cheapest 4
-        $related = Product::where('vendor_id', $this->product->vendor_id)
+        $related = Product::with('vendor')
+            ->where('vendor_id', $this->product->vendor_id)
             ->where('id', '!=', $this->product->id)
             ->active()
             ->orderBy('price', 'asc')
             ->take(4)
             ->get();
 
-        // Recommended: low stock products (almost gone!)
-        $recommended = Product::active()
+        $recommended = Product::with('vendor')
+            ->active()
             ->where('id', '!=', $this->product->id)
-            ->where('stock', '>', 0)
-            ->where('stock', '<=', 5)
+            ->where(function ($query) {
+                $query->where('price', '<', $this->product->price)
+                    ->orWhere(function ($q) {
+                        $q->where('stock', '>', 0)
+                            ->where('stock', '<=', 5);
+                    });
+            })
+            ->orderByRaw("
+                CASE
+                    WHEN stock > 0 AND stock <= 5 THEN 0
+                    ELSE 1
+                END
+            ")
             ->orderBy('price', 'asc')
             ->take(4)
             ->get();
@@ -81,15 +93,25 @@ new class extends Component {
             </a>
 
             <h1 style="font-size: 26px; font-weight: 800; color: #111; margin: 0 0 6px 0;">{{ $product->name }}</h1>
-            <p style="font-size: 22px; font-weight: 800; color: #111; margin: 0 0 16px 0;">${{ number_format($product->price, 2) }}</p>
-            <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 16px 0;">{{ $product->description }}</p>
+            <p style="font-size: 22px; font-weight: 800; color: #111; margin: 0 0 16px 0;">
+                ${{ number_format($product->price, 2) }}
+            </p>
+            <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 16px 0;">
+                {{ $product->description }}
+            </p>
 
             @if($product->stock === 0)
-                <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin: 0 0 24px 0;">Out of stock</p>
+                <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin: 0 0 24px 0;">
+                    Out of stock
+                </p>
             @elseif($product->stock <= 5)
-                <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin: 0 0 24px 0;">Only {{ $product->stock }} left!</p>
+                <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin: 0 0 24px 0;">
+                    Only {{ $product->stock }} left!
+                </p>
             @else
-                <p style="font-size: 12px; color: #aaa; margin: 0 0 24px 0;">{{ $product->stock }} items in stock</p>
+                <p style="font-size: 12px; color: #aaa; margin: 0 0 24px 0;">
+                    {{ $product->stock }} items in stock
+                </p>
             @endif
 
             <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 0 0 24px 0;" />
@@ -97,9 +119,13 @@ new class extends Component {
             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <label style="font-size: 13px; font-weight: 600; color: #333;">Quantity:</label>
-                    <input wire:model="quantity" type="number" min="1" max="{{ $product->stock }}"
+                    <input wire:model="quantity"
+                           type="number"
+                           min="1"
+                           max="{{ $product->stock }}"
                            style="width: 70px; border: 1.5px solid #e5e5e5; border-radius: 8px; padding: 8px 10px; font-size: 14px; text-align: center; outline: none;" />
                 </div>
+
                 <button wire:click="addToCart"
                         @if($product->stock === 0) disabled @endif
                         style="flex: 1; background: {{ $product->stock === 0 ? '#ccc' : '#111' }}; color: white; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: {{ $product->stock === 0 ? 'not-allowed' : 'pointer' }}; min-width: 160px;">
@@ -117,21 +143,27 @@ new class extends Component {
         </div>
     </div>
 
-    {{-- Related Products (same vendor, cheapest) --}}
     @if($related->count() > 0)
         <div style="margin-top: 40px;">
             <h2 style="font-size: 18px; font-weight: 800; color: #111; margin: 0 0 16px 0;">
                 More from {{ $product->vendor->shop_name }}
             </h2>
+
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
                 @foreach($related as $item)
                     <a href="{{ route('market.show', $item) }}" style="text-decoration: none;">
                         <div style="background: white; border-radius: 12px; border: 1px solid #eee; overflow: hidden;">
                             <img src="https://picsum.photos/seed/{{ $item->id }}/400/220"
+                                 alt="{{ $item->name }}"
                                  style="width: 100%; height: 110px; object-fit: cover; display: block;" />
+
                             <div style="padding: 10px 12px;">
-                                <p style="font-size: 12px; font-weight: 700; color: #111; margin: 0 0 4px 0; line-height: 1.3;">{{ $item->name }}</p>
-                                <p style="font-size: 13px; font-weight: 800; color: #6366f1; margin: 0;">${{ number_format($item->price, 2) }}</p>
+                                <p style="font-size: 12px; font-weight: 700; color: #111; margin: 0 0 4px 0; line-height: 1.3;">
+                                    {{ $item->name }}
+                                </p>
+                                <p style="font-size: 13px; font-weight: 800; color: #6366f1; margin: 0;">
+                                    ${{ number_format($item->price, 2) }}
+                                </p>
                             </div>
                         </div>
                     </a>
@@ -140,28 +172,57 @@ new class extends Component {
         </div>
     @endif
 
-    {{-- Recommended: Low Stock (almost gone!) --}}
     @if($recommended->count() > 0)
         <div style="margin-top: 40px;">
             <h2 style="font-size: 18px; font-weight: 800; color: #111; margin: 0 0 4px 0;">
-                Almost Gone — Grab Them Fast!
+                You Might Also Like
             </h2>
-            <p style="font-size: 13px; color: #aaa; margin: 0 0 16px 0;">These products are running low on stock</p>
+            <p style="font-size: 13px; color: #aaa; margin: 0 0 16px 0;">
+                Cheaper alternatives and products running low on stock
+            </p>
+
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
                 @foreach($recommended as $item)
                     <a href="{{ route('market.show', $item) }}" style="text-decoration: none;">
-                        <div style="background: white; border-radius: 12px; border: 1.5px solid #fee2e2; overflow: hidden;">
+                        <div style="background: white; border-radius: 12px; border: 1.5px solid #eee; overflow: hidden;">
                             <div style="position: relative;">
                                 <img src="https://picsum.photos/seed/{{ $item->id }}/400/220"
+                                     alt="{{ $item->name }}"
                                      style="width: 100%; height: 110px; object-fit: cover; display: block;" />
-                                <span style="position: absolute; top: 6px; left: 6px; background: #ef4444; color: white; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px;">
-                                Only {{ $item->stock }} left!
-                            </span>
+
+                                @if($item->stock > 0 && $item->stock <= 5)
+                                    <span style="position: absolute; top: 6px; left: 6px; background: #ef4444; color: white; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px;">
+                                        Only {{ $item->stock }} left!
+                                    </span>
+                                @elseif($item->price < $product->price)
+                                    <span style="position: absolute; top: 6px; left: 6px; background: #10b981; color: white; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px;">
+                                        Cheaper choice
+                                    </span>
+                                @endif
                             </div>
+
                             <div style="padding: 10px 12px;">
-                                <p style="font-size: 12px; font-weight: 700; color: #111; margin: 0 0 2px 0;">{{ $item->name }}</p>
-                                <p style="font-size: 11px; color: #aaa; margin: 0 0 4px 0;">{{ $item->vendor->shop_name }}</p>
-                                <p style="font-size: 13px; font-weight: 800; color: #ef4444; margin: 0;">${{ number_format($item->price, 2) }}</p>
+                                <p style="font-size: 12px; font-weight: 700; color: #111; margin: 0 0 2px 0;">
+                                    {{ $item->name }}
+                                </p>
+
+                                <p style="font-size: 11px; color: #aaa; margin: 0 0 6px 0;">
+                                    {{ $item->vendor->shop_name }}
+                                </p>
+
+                                @if($item->stock > 0 && $item->stock <= 5)
+                                    <p style="font-size: 11px; color: #ef4444; font-weight: 700; margin: 0 0 4px 0;">
+                                        Low stock
+                                    </p>
+                                @elseif($item->price < $product->price)
+                                    <p style="font-size: 11px; color: #10b981; font-weight: 700; margin: 0 0 4px 0;">
+                                        Save ${{ number_format($product->price - $item->price, 2) }}
+                                    </p>
+                                @endif
+
+                                <p style="font-size: 13px; font-weight: 800; color: #111; margin: 0;">
+                                    ${{ number_format($item->price, 2) }}
+                                </p>
                             </div>
                         </div>
                     </a>
