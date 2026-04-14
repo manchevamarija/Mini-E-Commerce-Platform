@@ -11,6 +11,11 @@ class Product extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function newFactory(): \Database\Factories\ProductFactory
+    {
+        return \Database\Factories\ProductFactory::new();
+    }
+
     public $incrementing = false;
     protected $keyType = 'string';
 

@@ -9,6 +9,11 @@ class OrderItem extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\OrderItemFactory
+    {
+        return \Database\Factories\OrderItemFactory::new();
+    }
+
     public $incrementing = false;
     protected $keyType = 'string';
 

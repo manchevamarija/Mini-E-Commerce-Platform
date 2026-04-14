@@ -12,6 +12,11 @@ class Order extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function newFactory(): \Database\Factories\OrderFactory
+    {
+        return \Database\Factories\OrderFactory::new();
+    }
+
     public $incrementing = false;
     protected $keyType = 'string';
 

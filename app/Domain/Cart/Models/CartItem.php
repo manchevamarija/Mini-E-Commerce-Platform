@@ -9,6 +9,12 @@ class CartItem extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\CartItemFactory
+    {
+        return \Database\Factories\CartItemFactory::new();
+    }
+
+
     public $incrementing = false;
     protected $keyType = 'string';
 

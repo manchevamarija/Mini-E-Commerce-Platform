@@ -9,6 +9,11 @@ class Cart extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\CartFactory
+    {
+        return \Database\Factories\CartFactory::new();
+    }
+
     public $incrementing = false;
     protected $keyType = 'string';
 

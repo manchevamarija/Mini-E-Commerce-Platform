@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Vendor extends Model
 {
     use HasFactory;
+    protected static function newFactory(): \Database\Factories\VendorFactory
+    {
+        return \Database\Factories\VendorFactory::new();
+    }
 
     public $incrementing = false;
     protected $keyType = 'string';
