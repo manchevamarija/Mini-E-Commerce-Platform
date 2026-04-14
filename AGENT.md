@@ -1,259 +1,234 @@
 # AGENT.md — Mini E-Commerce Platform
 
-> This file is used to guide AI coding assistants (Claude, Cursor, Copilot).  
+> This file guides AI coding assistants (Claude, Cursor, Copilot) on this project.
 > **All generated code MUST follow this structure, conventions, and rules.**
 
 ---
 
 ## Project Overview
 
-- **Name:** Mini E-Commerce Platform
-- **Stack:** Laravel 13.x, Livewire 4 (Volt), Tailwind CSS 3.x, Alpine.js 3.x, MySQL
-- **Architecture:** Domain-Driven Design (DDD)
-- **PHP Version:** 8.3
-- **Testing:** Pest 4 / PHPUnit
+| | |
+|---|---|
+| **Name** | Mini E-Commerce Platform |
+| **Stack** | Laravel 13.x, Livewire 4 (Volt), Tailwind CSS 3.x, Alpine.js 3.x, MySQL |
+| **Architecture** | Domain-Driven Design (DDD) |
+| **PHP Version** | 8.3 |
+| **Testing** | Pest 4 / PHPUnit |
 
 ---
 
-## Goal
+## How I Used AI in This Project
 
-Build a **scalable mini e-commerce system** with:
+I used Claude (claude.ai) as my primary AI assistant throughout this project.
+Rather than writing vague prompts, I wrote specific, architecture-aware prompts like:
 
-- Vendor marketplace
-- Cart system
-- Checkout flow
-- Order management
-- Stock validation
-- Payment simulation
+> "Create a `CheckoutService` in the `OrderManagement` domain. It should validate all cart items
+> have sufficient stock, create an Order with OrderItems, call `PaymentSimulatorService`
+> (fail if total > $999), decrement stock on success, clear the cart, and return the Order.
+> Wrap everything in a DB transaction. Throw a descriptive exception on failure."
+
+All AI-generated code was reviewed, tested, and committed with clear git messages.
 
 ---
 
 ## Domain Map
 
-### IdentityAndAccess
-- **Responsibility:** Authentication & roles
-- **Models:** `User`
+| Domain | Responsibility | Models |
+|---|---|---|
+| **IdentityAndAccess** | Auth, roles | `User` |
+| **ProductCatalog** | Vendors, products, marketplace | `Vendor`, `Product` |
+| **Cart** | Cart logic, stock validation | `Cart`, `CartItem` |
+| **OrderManagement** | Checkout, orders, status | `Order`, `OrderItem` |
 
-### ProductCatalog
-- **Responsibility:** Products & vendors
-- **Models:** `Vendor`, `Product`
-
-### Cart
-- **Responsibility:** Cart logic
-- **Models:** `Cart`, `CartItem`
-
-### OrderManagement
-- **Responsibility:** Orders & checkout
-- **Models:** `Order`, `OrderItem`
-
----
-
-## Relationships
-
-- User → has one → Cart
-- User → has one → Vendor (if role = vendor)
-- Vendor → has many → Products
-- Cart → has many → CartItems → belongs to → Product
-- Order → belongs to → User
-- Order → has many → OrderItems → belongs to → Product
-- OrderItem → belongs to → Vendor
+### Relationships
+User ──has one──▶ Vendor        (if role = vendor)
+User ──has one──▶ Cart
+Vendor ──has many──▶ Product
+Cart ──has many──▶ CartItem ──belongs to──▶ Product
+Order ──belongs to──▶ User
+Order ──has many──▶ OrderItem ──belongs to──▶ Product
+OrderItem ──belongs to──▶ Vendor
 
 ---
 
 ## Directory Structure
-
-app/  
-├── Domain/  
-├── Http/  
-resources/views/livewire/  
-database/  
+app/
+├── Domain/
+│   ├── IdentityAndAccess/
+│   │   ├── Enums/                # UserRole (buyer, vendor, admin)
+│   │   └── Models/               # User
+│   ├── ProductCatalog/
+│   │   ├── Actions/              # CreateProductAction, UpdateProductAction
+│   │   ├── DTOs/                 # CreateProductDTO
+│   │   ├── Enums/                # ProductStatus
+│   │   └── Models/               # Vendor, Product
+│   ├── Cart/
+│   │   ├── Actions/              # AddToCartAction, RemoveFromCartAction
+│   │   ├── Models/               # Cart, CartItem
+│   │   └── Services/             # CartStockValidationService
+│   └── OrderManagement/
+│       ├── Actions/              # CreateOrderAction, UpdateOrderStatusAction
+│       ├── DTOs/                 # CreateOrderDTO
+│       ├── Enums/                # OrderStatus, PaymentMethod
+│       ├── Models/               # Order, OrderItem
+│       └── Services/             # CheckoutService, PaymentSimulatorService
+├── Http/
+│   └── Middleware/               # RoleMiddleware
+resources/views/livewire/
+├── market/                       # index, show, vendor (public profile)
+├── cart/                         # index
+├── checkout/                     # index
+├── vendor/                       # products/index, products/create, products/edit
+│                                 # orders/index, dashboard, profile
+└── buyer/orders/                 # index, show, confirmation
+database/
+├── migrations/
+├── seeders/                      # VendorSeeder, ProductSeeder
+└── factories/                    # One per model
 tests/
+├── Feature/                      # CheckoutTest, RoleAccessTest, OrderStatusTest,
+│                                 # CartStockValidationServiceTest, Auth tests
+└── Unit/                         # PaymentSimulatorServiceTest
 
 ---
 
 ## Naming Conventions
 
-- **Models:** Singular PascalCase → `Product`, `OrderItem`
-- **Tables:** Plural snake_case → `products`, `order_items`
-- **Actions:** Verb + Noun + Action → `CreateProductAction`
-- **DTOs:** Noun + DTO → `CreateOrderDTO`
-- **Enums:** `UserRole`, `OrderStatus`
-- **Services:** `CheckoutService`, `PaymentSimulatorService`
+| Type | Pattern | Example |
+|---|---|---|
+| Model | Singular PascalCase | `Product`, `CartItem` |
+| Table | Plural snake_case | `products`, `cart_items` |
+| Action | Verb + Noun + Action | `CreateProductAction` |
+| DTO | Noun + DTO | `CreateProductDTO` |
+| Enum | Noun | `OrderStatus`, `UserRole` |
+| Service | Noun + Service | `CheckoutService` |
 
 ---
 
 ## Architecture Rules
 
-- **Controllers MUST be thin**  
-  → Only validation + call Actions/Services
-
-- **Actions MUST do ONE thing**  
-  → Example: `CreateOrderAction`
-
-- **Services orchestrate logic**  
-  → Example: `CheckoutService`
-
-- **Models handle relationships & scopes**  
-  → Example: `Product::scopeActive()`
-
-- **NEVER pass `$request` into Actions**  
-  → Always use DTOs
-
-- **NEVER use magic strings**  
-  → Always use Enums
+1. **Controllers are thin** — validate, call Action/Service, return response
+2. **Actions do one thing** — `CreateOrderAction` only creates an order
+3. **Services orchestrate** — `CheckoutService` coordinates multiple actions in a transaction
+4. **Models own relationships and scopes** — `Product::scopeActive()`, `scopeForVendor()`
+5. **DTOs carry data** — never pass raw `$request` into an Action
+6. **Enums always** — never use magic strings like `'pending'` or `'buyer'`
 
 ---
 
 ## Database Rules
 
-## Primary Keys
-- Use **ULIDs**
-- Example: `$table->ulid('id')->primary();`
-
-## Foreign Keys
-- Always use **constraints + cascade**
-- Example: `$table->foreignUlid('user_id')->constrained()->cascadeOnDelete();`
-
-## Money
-- Use: **decimal(10, 2)**
-- ❌ Never use float
-
-## Soft Deletes
-Enable soft deletes on:
-- products
-- orders
-
-## Indexes
-Add indexes on:
-- WHERE
-- ORDER BY
-- JOIN
+- **Primary keys:** ULIDs → `$table->ulid('id')->primary()`
+- **Foreign keys:** always constrained → `$table->foreignUlid('vendor_id')->constrained()->cascadeOnDelete()`
+- **Money:** `decimal(10, 2)` — never `float`
+- **Soft deletes:** on `products` and `orders` only
+- **Indexes:** on every column used in `WHERE`, `ORDER BY`, or `JOIN`
 
 ---
 
 ## Business Rules
 
-## Payment Simulation
-- Orders **over $999 must fail**
-- Implemented in: `PaymentSimulatorService`
+### Payment Simulation
+Orders with total **over $999 fail**. Handled by `PaymentSimulatorService`.
 
-## Stock Validation
-Stock must be checked:
+### Stock Validation
+Checked at **two points:**
+- Add to cart → warns the user
+- Checkout → rejects the order
 
-- **Add to cart** → warn/block
-- **Checkout** → strict validation
+### Checkout Flow (`CheckoutService`)
+Must be atomic inside `DB::transaction()`:
+1. Validate cart is not empty
+2. Validate all items have sufficient stock
+3. Create `Order` + `OrderItem` records
+4. Call `PaymentSimulatorService` → throw on failure
+5. Decrement product stock
+6. Clear the cart
+7. Return the Order
 
-## Checkout
-
-`CheckoutService` MUST:
-
-- Ensure cart is not empty
-- Validate stock
-- Create Order
-- Create OrderItems
-- Call PaymentSimulatorService
-- Decrement stock
-- Clear cart
-- Return Order
-
-Wrap everything in:
-DB::transaction(function () {});
-
-Must be **atomic**:
-- order creation
-- order items
-- payment
-- stock decrement
-- cart clear
-
-On failure → rollback + throw exception
+### Order Status Transitions
+pending → paid → shipped → delivered
+Forward only. No skipping. Enforced by `OrderStatus::canTransitionTo()`.
 
 ---
 
-## Order Status Flow
+## Product Recommendations
 
-Allowed:
-pending → paid → shipped → delivered
+### Related Products (same vendor)
+- Same vendor as current product
+- Exclude current product
+- Active only
+- Sorted by price ascending
+- Max 4 items
 
-Rules:
-- forward only
-- no backwards
-- invalid transitions rejected
+### Almost Gone (low stock)
+- Stock > 0 and stock <= 5
+- Active only
+- Exclude current product
+- Sorted by price ascending
+- Max 4 items
+- Label: "Almost Gone — Grab Them Fast!"
 
-Handled by:
-`OrderStatus::canTransitionTo()`
+---
+
+## Vendor Public Profile
+- Each vendor has a public profile page at `/vendors/{vendor}`
+- Shows all active products from that vendor
+- Vendor names on marketplace cards and product detail pages are clickable links
+
+---
+
+## Stock Badge Rules
+
+| Condition | Badge |
+|---|---|
+| `stock = 0` | "Out of stock" (black) |
+| `stock <= 5` | "Only X left!" (red) |
+
+Shown on: marketplace cards, product detail page, recommendation cards.
 
 ---
 
 ## Edge Cases
 
-## Concurrent purchase (last item)
-- Status: TODO
-- Needs: SELECT FOR UPDATE
-
-## Deleted product in cart
-- Handled → fails at checkout
-
-## Empty cart
-- Handled → RuntimeException
-
-## Stock mismatch
-- Handled → double validation
+| Scenario | Status | Solution |
+|---|---|---|
+| Two buyers purchase last item simultaneously | TODO | Use `SELECT ... FOR UPDATE` row locking |
+| Vendor deletes product in buyer's cart | Handled | Checkout fails with stock error |
+| Cart empty at checkout | Handled | `RuntimeException` thrown |
+| Stock gone between add-to-cart and checkout | Handled | Double validation catches this |
 
 ---
 
 ## Test Coverage
+42 tests, 95 assertions — all passing
+Feature/CheckoutTest                  checkout success, payment fail, stock fail
+Feature/RoleAccessTest                guest redirects, buyer/vendor 403s
+Feature/OrderStatusTest               valid + invalid transitions
+Feature/CartStockValidationServiceTest  pass + fail scenarios
+Unit/PaymentSimulatorServiceTest      under, at, and over $999
 
-Includes:
+Full Breeze Auth test suite
 
-- Checkout success
-- Payment failure
-- Stock failure
-- Auth protection
-- Role authorization
-- Order transitions
-- Cart validation
-- Payment simulation
-
-## Example Tests
-- Feature/CheckoutTest
-- Feature/RoleAccessTest
-- Feature/OrderStatusTest
-- Feature/CartStockValidationTest
-- Unit/PaymentSimulatorServiceTest
 
 ---
 
 ## Common Commands
 
-php artisan serve  
-php artisan migrate:fresh --seed  
-php artisan test  
-php artisan test --filter=CheckoutTest  
-php artisan optimize:clear
-
----
-
-## AI Output Requirements
-
-AI MUST:
-
-- follow DDD structure
-- use correct namespaces
-- keep controllers thin
-- use Actions & Services properly
-- use DTOs (no request)
-- use Enums (no strings)
-- use ULIDs
-- use decimal(10,2)
-- respect order flow
-- enforce payment rule (>999 fail)
-- validate stock twice
-- use DB transactions
-- throw clear exceptions
+```bash
+php artisan serve                       # Start dev server
+php artisan migrate:fresh --seed        # Reset DB with sample data
+php artisan test                        # Run all 42 tests
+php artisan test --filter=CheckoutTest  # Run specific test
+php artisan optimize:clear              # Clear all caches
+```
 
 ---
 
 ## Final Rule
 
-**If code does not follow this file → it is WRONG.**
+> If generated code does not follow this file, it is considered incorrect for this project.
+Зачувај па:
+bashgit add .
+git commit -m "Update AGENT.md with complete project documentation"
+git push origin master:main --force
