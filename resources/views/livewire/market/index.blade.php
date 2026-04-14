@@ -91,13 +91,24 @@ new class extends Component {
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
         @forelse($products as $product)
             <div style="background: white; border-radius: 14px; border: 1px solid #eee; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s;">
-                <a href="{{ route('market.show', $product) }}">
-                    <img
-                        src="https://picsum.photos/seed/{{ $product->id }}/400/220"
-                        alt="{{ $product->name }}"
-                        style="width: 100%; height: 150px; object-fit: cover; display: block;"
-                    />
-                </a>
+                <div style="position: relative;">
+                    <a href="{{ route('market.show', $product) }}">
+                        <img
+                            src="https://picsum.photos/seed/{{ $product->id }}/400/220"
+                            alt="{{ $product->name }}"
+                            style="width: 100%; height: 150px; object-fit: cover; display: block;"
+                        />
+                    </a>
+                    @if($product->stock === 0)
+                        <span style="position: absolute; top: 8px; left: 8px; background: #111; color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
+            Out of stock
+        </span>
+                    @elseif($product->stock <= 5)
+                        <span style="position: absolute; top: 8px; left: 8px; background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
+            Only {{ $product->stock }} left!
+        </span>
+                    @endif
+                </div>
                 <div style="padding: 12px; flex: 1; display: flex; flex-direction: column;">
                     <p style="font-size: 10px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 4px 0;">
                         {{ $product->vendor->shop_name }}
